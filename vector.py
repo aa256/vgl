@@ -2,6 +2,8 @@ from collections import OrderedDict
 from functools import reduce
 from numbers import Number
 
+import math
+
 def vec2(x,y):
     return Vec(x=x, y=y)
 
@@ -31,6 +33,9 @@ class Vec:
 
     def values(self):
         return tuple(self.__dict__.values())
+
+    def __iter__(self):
+        return iter(self.keys())
 
     def __str__(self):
         d = self.__dict__
@@ -75,6 +80,12 @@ class Vec:
 
     def __rmul__(self, other):
         return self*other
+
+    def l2(self):
+        out = 0
+        for v in self.values():
+            out += v*v
+        return math.sqrt(out)
 
     def max_len(self):
         lens = map(lambda x : len(str(x)), self.values())

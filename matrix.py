@@ -8,26 +8,39 @@ def mat2(xx,xy,yx,yy):
     return Mat(x=vec2(xx,xy), y=vec2(yx,yy))
 
 def mat2proj(xx,xy,xw,yx,yy,yw,wx,wy,ww):
-    return Mat({
-    'x':vec2proj(xx,xy,xw),
-    'y':vec2proj(yx,yy,yw),
-    'w':vec2proj(wx,wy,ww)}
-    )
+    return Mat(
+    x=vec2proj(xx,xy,xw),
+    y=vec2proj(yx,yy,yw),
+    w=vec2proj(wx,wy,ww))
 
 def mat3(xx,xy,xz,yx,yy,yz,zx,zy,zz):
-    return Mat({'x':vec3(xx,xy,xz), 'y':vec3(yx,yy,yz), 'z':vec3(zx,zy,zz)})
+    return Mat(x=vec3(xx,xy,xz), y=vec3(yx,yy,yz), z=vec3(zx,zy,zz))
 
 def mat3proj(xx,xy,xz,xw,yx,yy,yz,yw,zx,zy,zz,zw,wx,wy,wz,ww):
-    return Mat({
-    'x':vec3proj(xx,xy,xz,xw),
-    'y':vec3proj(yx,yy,yz,yw),
-    'z':vec3proj(zx,zy,zz,zw),
-    'w':vec3proj(wx,wy,wz,ww)})
+    return Mat(
+    x=vec3proj(xx,xy,xz,xw),
+    y=vec3proj(yx,yy,yz,yw),
+    z=vec3proj(zx,zy,zz,zw),
+    w=vec3proj(wx,wy,wz,ww))
+
+def mat32(xx, xy, xz, yx, yy, yz):
+    return Mat(x=vec3(xx,xy,xz), y=vec3(yx,yy,yz))
 
 class Mat:
 
     def __init__(self, **vecs_by_kw):
         self.__dict__ = OrderedDict(vecs_by_kw)
+
+    def with_indices(xvars=None, yvars=None, *args):
+        if xvars==None or yvars==None:
+            return ValueError(
+                "Need to set xvars and yvars as lists of distinct strings")
+        m = len(xvars)
+        n = len(yvars)
+        if len(args) != m*n:
+            return ValueError(
+            "Need to pass m*n numerical args, where m")
+
 
     def __eq__(self, other):
         if isinstance(other, Mat):
@@ -42,6 +55,9 @@ class Mat:
 
     def values(self):
         return tuple(self.__dict__.values())
+
+    def __iter__(self):
+        return iter(self.__dict)
 
     def __str__(self):
         d = self.__dict__
@@ -65,10 +81,6 @@ class Mat:
         row = [" "*2]
         row.extend(['{v:>{ell}}'.format(v=v, r=' ', ell=ell) for v in xkeys])
         rows.append(' '.join(row))
-        print("FOOFOO")
-        print(xkeys)
-        print(ykeys)
-        print(self.values())
         for kx in xkeys:
             row = ['{v:>2}'.format(v=kx, r=' ')]
             row.extend(['{v:>{ell}}'.format(v=self[kx][ky], r=' ', ell=ell) for ky in ykeys])
@@ -76,48 +88,52 @@ class Mat:
         return "\n".join(rows)
 
     def __add__(self, other):
-        d0 = dict(self.__dict__)
-        d1 = other.__dict__
-        for k in d1:
-            d0[k] += d1[k]
-        return Mat(**d0)
+        out = dict(self.__dict__)
+        for k in other:
+            out[k] += other[k]
+        return Mat(**other)
 
     def __sub__(self, other):
-        d0 = dict(self.__dict__)
-        d1 = other.__dict__
-        out = dict()
-        for k in d1:
-            d0[k] -= d1[k]
-        return Mat(**d0)
+        out = dict(self.__dict__)
+        for k in other:
+            out[k] -= other[k]
+        return Mat(**out)
 
     def __mul__(self, other):
         if isinstance(other, Number):
             return self.__mul_by_scalar(other)
         if isinstance(other, Vec):
-            out = OrderedDict({k:None for k in self.__dict__})
-            d = self.__dict__
-            for k in d:
-                out[k] = d[k]*other
-            return Vec(**out)
+            return self.__mul_by_vec(other)
         elif isinstance(other, Mat):
-            trans = +other
-            kx = self.keys()
-            ky = trans.keys()
-            out = OrderedDict(self.__dict__)
-            for x in kx:
-                out[x] = dict()
-                for y in ky:
-                    out[x][y] = self[x]*trans[y]
-                    print("ffff")
-                    print(self[x], trans[y], out[x][y])
-                out[x] = Vec(**out[x])
-            return Mat(**out)
+            return self.__mul_by_mat(other)
+        return TypeError(
+            "Mat does not support multiplication by {}".format(type(other)))
 
-    def __my_by_scalar(self, other):
-        d = OrderedDict(self.__dict__)
+    def __mul_by_scalar(self, other):
+        d = dict(self.__dict__)
         for k in d:
-            d[k] *= c
+            d[k] *= other
         return Mat(**d)
+
+    def __mul_by_vec(self, other):
+        d = dict(self.__dict__)
+        for k in d:
+            d[k] *= other
+        return Vec(**d)
+
+    def __mul_by_mat(self, other):
+        trans = +other
+        kx = self.keys()
+        ky = trans.keys()
+        out = OrderedDict(self.__dict__)
+        for x in kx:
+            out[x] = dict()
+            for y in ky:
+                out[x][y] = self[x]*trans[y]
+                print("ffff")
+                print(self[x], trans[y], out[x][y])
+            out[x] = Vec(**out[x])
+        return Mat(**out)
 
     def __pos__(self):
         return self.transpose()
